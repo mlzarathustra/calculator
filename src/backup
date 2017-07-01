@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ $# == 0 ]; then
+  echo "please enter an argument. (eg. backup 5jul0)"
+  exit
+fi
+
+zip $1 `find . -name '*.java'` `find . -name '*.html'`
+
+cp $1.zip a:\eval\.
+mv $1.zip ../_backups/eval/.
+
+ls -lrt ../_backups/eval | tail
+

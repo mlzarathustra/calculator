@@ -1,0 +1,6 @@
+#! c:\bin\bash.exe
+
+jar cvf eval.jar `find . -name '*.class'`
+
+ls -l eval.jar
+
