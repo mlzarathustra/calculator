@@ -134,8 +134,8 @@ initSymbols();
 //
 function tokenize(s) {
     let rs=[];
-    while (s.length > 0) {
-        let pm=/^[\(\)]/.exec(s); 
+    while (s!=null && s.length > 0) {
+        let pm=/^([\(\)])(.*)/.exec(s); 
         if (pm != null) {
             rs.push(new Pren(pm[1]));
             s=pm[2];
