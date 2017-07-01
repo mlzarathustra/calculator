@@ -32,6 +32,13 @@ class Verb {
     isA() { return 'Verb'; }
  }
 
+ class Pren {
+     constructor(which) { this.which = (which=='(') ? '(' : ')'; }
+     isOpen() { return this.which=='('; }
+     isClose() { return this.which==')'; }
+     isA() { return 'Pren'; }
+ }
+
 
 let _verbs = // outer dimension is precedence
 [
@@ -123,17 +130,33 @@ initSymbols();
 
 
 
-// parse formula into an array of (String) tokens
+// parse formula into an array of Noun, Verb, and Pren tokens
 //
 function tokenize(s) {
     let rs=[];
     while (s.length > 0) {
-        let m=/([A-Za-z]+|[0-9\.]+|.)(.*)/.exec(s);
-        if (m[1].trim().length > 0) rs.push(m[1]);
-        s=m[2];
+        let pm=/^[\(\)]/.exec(s); 
+        if (pm != null) {
+            rs.push(new Pren(pm[1]));
+            s=pm[2];
+        }
+        else {
+            let nm=/^([0-9\.]+)(.*)/.exec(s);
+            if (nm != null) {
+                rs.push(new Noun(nm[1]));
+                s=nm[2];
+            }
+            else {
+                let m=/^([A-Za-z]+|.)(.*)/.exec(s);
+                if (m[1].trim().length > 0) rs.push(Symbols[m[1]]);
+                s=m[2];
+            }
+        }
     }
     return rs;
 }
+
+
 
 function showTokens(id) {
     let el=document.getElementById(id);
