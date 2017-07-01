@@ -4,9 +4,11 @@
 //  (c) miles zarathustra
 //
 
-//  Q: the original had a 'chain' mode for expressions like 1+2+3
-//  can we get rid of it?
-
+class Noun {
+    constructor(v) { this.value = parseFloat(v); }
+    toString() { return "Noun: { value="+this.value+" } "; }
+    isA() { return 'Noun'; }
+}
 
 var ParseAs ={
     // left-to-right operator, right-to-left operator, 
@@ -25,12 +27,13 @@ class Verb {
 
     toString() {
         return "Verb: {\""+this.string+"\" precedence "+this.precedence+
-            "; parse mode: "+ ["left","right","function","chain"][this.parseMode]+"}";
-  }
-}
+            "; parse mode: "+ ["left","right","function","chain"][this.parseMode-1]+"}";
+    }
+    isA() { return 'Verb'; }
+ }
 
 
-let verbs = // outer dimension is precedence
+let _verbs = // outer dimension is precedence
 [
     [
         new Verb('+',ParseAs.LEFT, 
@@ -94,16 +97,51 @@ let verbs = // outer dimension is precedence
         new Verb( 'sin', ParseAs.FUNCTION, function(n) { return Math.sin(n); } ),
         new Verb( 'cos', ParseAs.FUNCTION, function(n) { return Math.cos(n); } ),
         new Verb( 'tan', ParseAs.FUNCTION, function(n) { return Math.tan(n); } ),
-        new Verb( 'cot', ParseAs.FUNCTION, function(n) { return Math.cot(n); } ),
-        new Verb( 'pi',  ParseAs.NOUN,     function(n) { return Math.PI; }),
-        new Verb( 'e',  ParseAs.NOUN,     function(n) { return Math.E; }),
+        new Verb( 'cot', ParseAs.FUNCTION, function(n) { return Math.cot(n); } )
     ]
 
 ]
 
+var Symbols = {
+        pi: new Noun( Math.PI ),
+        e: new Noun(Math.E)
+};
+
+function initSymbols() {
+    for (prec=0; prec<_verbs.length; ++prec) {
+        for (let v of _verbs[prec]) {
+            v.precedence = prec;
+            Symbols[v.string] = v;
+        }
+    }
+}
+
+initSymbols();
+
+//
+//
 
 
 
+// parse formula into an array of (String) tokens
+//
+function tokenize(s) {
+    let rs=[];
+    while (s.length > 0) {
+        let m=/([A-Za-z]+|[0-9\.]+|.)(.*)/.exec(s);
+        if (m[1].trim().length > 0) rs.push(m[1]);
+        s=m[2];
+    }
+    return rs;
+}
+
+function showTokens(id) {
+    let el=document.getElementById(id);
+    let s=el.value;
+    console.log('s is '+s);
+    let tokens=tokenize(s);
+    console.log(tokens);
+}
 
 
 
