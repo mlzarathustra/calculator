@@ -36,8 +36,92 @@ class Verb {
      constructor(which) { this.which = (which=='(') ? '(' : ')'; }
      isOpen() { return this.which=='('; }
      isClose() { return this.which==')'; }
+     toString() { return "Pren: "+this.which; }
      isA() { return 'Pren'; }
  }
+
+class Expression {
+
+    // parse formula into an array of Noun, Verb, and Pren tokens
+    //
+    static tokenize(s) {
+        let rs=[];
+        while (s!=null && s.length > 0) {
+            let pm=/^([\(\)])(.*)/.exec(s); 
+            if (pm != null) {
+                rs.push(new Pren(pm[1]));
+                s=pm[2];
+            }
+            else {
+                let nm=/^([0-9\.]+)(.*)/.exec(s);
+                if (nm != null) {
+                    rs.push(new Noun(nm[1]));
+                    s=nm[2];
+                }
+                else {
+                    let m=/^([A-Za-z]+|.)(.*)/.exec(s);
+                    let v=Symbols[m[1]];
+                    if (v == undefined) ErrorList.push('Undefined: '+m[1]);
+                    if (m[1].trim().length > 0) rs.push(v);
+                    s=m[2];
+                }
+            }
+        }
+        return rs;
+    }
+    
+    // construct Expression from string or token list 
+    //
+    constructor(arg) { 
+        ErrorList=[];
+        this.list=[];
+        let tokens;
+        if (typeof(arg) == 'string') {
+            tokens=Expression.tokenize(arg);
+            if (ErrorList.length > 0) return; 
+        }
+        else tokens=arg;
+
+        for (let i=0; i<tokens.length; ++i) {
+            let token=tokens[i];
+            if (token.isA() == 'Pren') {
+                if (token.isClose()) {
+                    ErrorList.push("Unexpected ) token="+i);
+                }
+                else {
+                    let nest=1;
+                    for (let j=i+1; j<tokens.length; ++j) {
+                        if (tokens[j].isA() == 'Pren') {
+                            if (tokens[j].isOpen()) ++nest;
+                            else {
+                                --nest;
+                                if (nest == 0) {
+                                    this.list.push(new Expression(tokens.slice(i+1,j)));
+                                    //console.log('before splice tokens:'+tokens+'; i='+i+' j='+j);
+                                    tokens.splice(i,1+j-i);
+                                    --i; 
+                                    //console.log('after splice  tokens:'+tokens+'; i='+i+' j='+j);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+            else {
+                this.list.push(tokens[i]);
+            }
+        }
+    }
+    toString() { return "Expression: {"+ this.list.join(', ') +"}"; }
+    isA() { return 'Expression'; }
+
+
+}
+
+
+// \\// \\// \\ // \\// \\ // \\// \\ // \\// \\ // \\// \\ // \\// \\ // \\// \\ // \\
 
 
 let _verbs = // outer dimension is precedence
@@ -127,34 +211,9 @@ initSymbols();
 
 //
 //
+var ErrorList=[];
 
 
-
-// parse formula into an array of Noun, Verb, and Pren tokens
-//
-function tokenize(s) {
-    let rs=[];
-    while (s!=null && s.length > 0) {
-        let pm=/^([\(\)])(.*)/.exec(s); 
-        if (pm != null) {
-            rs.push(new Pren(pm[1]));
-            s=pm[2];
-        }
-        else {
-            let nm=/^([0-9\.]+)(.*)/.exec(s);
-            if (nm != null) {
-                rs.push(new Noun(nm[1]));
-                s=nm[2];
-            }
-            else {
-                let m=/^([A-Za-z]+|.)(.*)/.exec(s);
-                if (m[1].trim().length > 0) rs.push(Symbols[m[1]]);
-                s=m[2];
-            }
-        }
-    }
-    return rs;
-}
 
 
 
@@ -162,8 +221,13 @@ function showTokens(id) {
     let el=document.getElementById(id);
     let s=el.value;
     console.log('s is '+s);
-    let tokens=tokenize(s);
-    console.log(tokens);
+    let expr=new Expression(s);
+    console.log(expr);
+
+    if (ErrorList.length>0) {
+        console.log('ERROR(S)');
+        ErrorList.forEach( function(msg) { console.log(msg); });
+    }
 }
 
 
