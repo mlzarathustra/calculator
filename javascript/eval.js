@@ -4,10 +4,13 @@
 //  (c) miles zarathustra
 //
 
-class Noun {
-    constructor(v) { this.value = parseFloat(v); }
+class Value { getValue() { return null; } }
+
+class Noun extends Value {
+    constructor(v) { super(); this.value = parseFloat(v); }
     toString() { return "Noun: { value="+this.value+" } "; }
     isA() { return 'Noun'; }
+    getValue() { return this.value; }
 }
 
 var ParseAs ={
@@ -40,11 +43,11 @@ class Verb {
      isA() { return 'Pren'; }
  }
 
-class Expression {
+class Expression extends Value {
 
     // parse formula into an array of Noun, Verb, and Pren tokens
     //
-    static tokenize(s) {
+    tokenize(s) {
         let rs=[];
         while (s!=null && s.length > 0) {
             let pm=/^([\(\)])(.*)/.exec(s); 
@@ -60,10 +63,13 @@ class Expression {
                 }
                 else {
                     let m=/^([A-Za-z]+|.)(.*)/.exec(s);
-                    let v=Symbols[m[1]];
-                    if (v == undefined) ErrorList.push('Undefined: '+m[1]);
-                    if (m[1].trim().length > 0) rs.push(v);
-                    s=m[2];
+                    let sym=m[1].trim();
+                    if (sym.length > 0) {
+                        let v=Symbols[sym];
+                        if (v == undefined) this.ErrorList.push('Undefined: '+m[1]);
+                        rs.push(v);
+                        s=m[2];
+                    }
                 }
             }
         }
@@ -73,20 +79,21 @@ class Expression {
     // construct Expression from string or token list 
     //
     constructor(arg) { 
-        ErrorList=[];
+        super();
+        this.ErrorList=[];
         this.list=[];
         let tokens;
         if (typeof(arg) == 'string') {
-            tokens=Expression.tokenize(arg);
-            if (ErrorList.length > 0) return; 
+            tokens=this.tokenize(arg);
+            if (this.ErrorList.length > 0) return; 
         }
         else tokens=arg;
 
         for (let i=0; i<tokens.length; ++i) {
             let token=tokens[i];
-            if (token.isA() == 'Pren') {
+            if (token.isA() == 'Pren') {  
                 if (token.isClose()) {
-                    ErrorList.push("Unexpected ) token="+i);
+                    this.ErrorList.push("Unexpected ) token="+i);
                 }
                 else {
                     let nest=1;
@@ -96,11 +103,17 @@ class Expression {
                             else {
                                 --nest;
                                 if (nest == 0) {
-                                    this.list.push(new Expression(tokens.slice(i+1,j)));
-                                    //console.log('before splice tokens:'+tokens+'; i='+i+' j='+j);
+                                    let subExpr=new Expression(tokens.slice(i+1,j));
+                                    if (subExpr.ErrorList.length>0) {
+                                        subExpr.ErrorList.forEach( 
+                                            function(err) { this.ErrorList.push(err); } 
+                                        );
+                                        this.list=[];
+                                        return;
+                                    }
+                                    this.list.push(subExpr);
                                     tokens.splice(i,1+j-i);
                                     --i; 
-                                    //console.log('after splice  tokens:'+tokens+'; i='+i+' j='+j);
                                     break;
                                 }
                             }
@@ -110,10 +123,28 @@ class Expression {
                 }
             }
             else {
+
+                //  TODO - implement
+                /*
+                  Expression should be one of:
+                    Value
+                    Verb Value
+                    Value Verb Value
+
+                    Value is either an Expression or a Noun (via getValue())
+
+                */
                 this.list.push(tokens[i]);
             }
         }
     }
+
+    getValue() {
+        //  TODO - implement
+    }
+
+
+
     toString() { return "Expression: {"+ this.list.join(', ') +"}"; }
     isA() { return 'Expression'; }
 
@@ -209,10 +240,6 @@ function initSymbols() {
 
 initSymbols();
 
-//
-//
-var ErrorList=[];
-
 
 
 
@@ -224,9 +251,9 @@ function showTokens(id) {
     let expr=new Expression(s);
     console.log(expr);
 
-    if (ErrorList.length>0) {
+    if (expr.ErrorList.length>0) {
         console.log('ERROR(S)');
-        ErrorList.forEach( function(msg) { console.log(msg); });
+        expr.ErrorList.forEach( function(msg) { console.log(msg); });
     }
 }
 
