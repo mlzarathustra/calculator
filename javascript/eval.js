@@ -4,10 +4,13 @@
 //  (c) miles zarathustra
 //
 
-class Value { getValue() { return null; } }
+function isValue(obj) {
+    return (obj.isA()=='Noun' || obj.isA()=='Expression');
+}
 
-class Noun extends Value {
-    constructor(v) { super(); this.value = parseFloat(v); }
+
+class Noun {
+    constructor(v) { this.value = parseFloat(v); }
     toString() { return "Noun: { value="+this.value+" } "; }
     isA() { return 'Noun'; }
     getValue() { return this.value; }
@@ -16,7 +19,7 @@ class Noun extends Value {
 var ParseAs ={
     // left-to-right operator, right-to-left operator, 
     //      function, chain, noun
-    LEFT:1, RIGHT:2, FUNCTION:3, CHAIN:4, NOUN: 5
+    LEFT:1, RIGHT:2, FUNCTION:3, NOUN: 4
 }
 
 class Verb {
@@ -41,9 +44,23 @@ class Verb {
      isClose() { return this.which==')'; }
      toString() { return "Pren: "+this.which; }
      isA() { return 'Pren'; }
- }
+}
 
-class Expression extends Value {
+/*
+    Expression.cmp (components) are in one of these forms:
+
+        Value               rightArg
+        Verb Value          action rightArg
+        Value Verb Value    leftArg action rightArg
+
+    Value is either an Expression or a Noun, as determined by the 
+    isValue() fuction;
+
+    look at eval() to see how they are used.
+
+*/
+
+class Expression {
 
     // parse formula into an array of Noun, Verb, and Pren tokens
     //
@@ -68,52 +85,50 @@ class Expression extends Value {
                         let v=Symbols[sym];
                         if (v == undefined) this.ErrorList.push('Undefined: '+m[1]);
                         rs.push(v);
-                        s=m[2];
                     }
+                    s=m[2];
                 }
             }
         }
         return rs;
     }
-    
-    // construct Expression from string or token list 
-    //
-    constructor(arg) { 
-        super();
-        this.ErrorList=[];
-        this.list=[];
-        let tokens;
-        if (typeof(arg) == 'string') {
-            tokens=this.tokenize(arg);
-            if (this.ErrorList.length > 0) return; 
-        }
-        else tokens=arg;
 
-        for (let i=0; i<tokens.length; ++i) {
-            let token=tokens[i];
-            if (token.isA() == 'Pren') {  
+    // returns a number
+    getValue() {
+        if (action == null) return rightArg.getValue();
+        if (leftArg == null) return action(rightArg);
+        return action(leftArg,rightArg);
+    }
+
+    collapsePrens(tokens) {
+        let rs=[];
+        for (let idx=0; idx<tokens.length; ++idx) {   
+            let token=tokens[idx];                
+
+            if (token.isA() == 'Pren') { 
                 if (token.isClose()) {
-                    this.ErrorList.push("Unexpected ) token="+i);
+                    this.ErrorList.push("Unexpected ) token="+idx);
                 }
                 else {
                     let nest=1;
-                    for (let j=i+1; j<tokens.length; ++j) {
+                    for (let j=idx+1; j<tokens.length; ++j) {
                         if (tokens[j].isA() == 'Pren') {
                             if (tokens[j].isOpen()) ++nest;
                             else {
                                 --nest;
                                 if (nest == 0) {
-                                    let subExpr=new Expression(tokens.slice(i+1,j));
+                                    let subExpr=new Expression(tokens.slice(idx+1,j));
                                     if (subExpr.ErrorList.length>0) {
                                         subExpr.ErrorList.forEach( 
                                             function(err) { this.ErrorList.push(err); } 
                                         );
-                                        this.list=[];
-                                        return;
+                                        return [];
                                     }
-                                    this.list.push(subExpr);
-                                    tokens.splice(i,1+j-i);
-                                    --i; 
+
+                                    rs.push(subExpr);
+
+                                    tokens.splice(idx,1+j-idx);
+                                    --idx; 
                                     break;
                                 }
                             }
@@ -123,29 +138,102 @@ class Expression extends Value {
                 }
             }
             else {
-
-                //  TODO - implement
-                /*
-                  Expression should be one of:
-                    Value
-                    Verb Value
-                    Value Verb Value
-
-                    Value is either an Expression or a Noun (via getValue())
-
-                */
-                this.list.push(tokens[i]);
+                rs.push(tokens[idx]);
             }
         }
+        return rs;
     }
 
-    getValue() {
-        //  TODO - implement
+    getSymbolWithMaxPrecedence(tokens) {
+        let rs=null;
+        for (let token of tokens) {
+            if (token.isA() == 'Verb') {
+                if (rs == null || token.precedence > rs.precedence) rs=token;
+            }
+        }
+        return rs;
+    }
+
+    addImpliedMul(tokens) {
+        let rs=[];
+        for (let t of tokens) {
+            if (isValue(t) && rs.length>0 && isValue(rs[rs.length-1])) {
+                rs.push(Symbols['*']);
+            }
+            rs.push(t);
+        }
+        return rs;
+    }
+
+    findTreeTopIdx(tokens) {
+        let maxPreced = this.getSymbolWithMaxPrecedence(tokens);
+        console.log('max precedence is '+maxPreced);
+
+        if (maxPreced.parseMode == ParseAs.RIGHT) {
+            for (let idx=tokens.length-1; idx>=0; --idx) {
+                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == maxPreced.precedence) {
+                    return idx;
+                }
+            }
+        }
+        else {
+            for (let idx=0; idx<tokens.length; ++idx) {
+                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == maxPreced.precedence) {
+                    return idx;
+                }
+            }
+        }
+
+
+
+        // not reached
     }
 
 
+    // construct Expression from string or token list 
+    //
+    constructor(arg) { 
+        this.ErrorList=[];
+        this.leftArg=null;  // see comment above class decl
+        this.rightArg=null;
+        this.action=null;
 
-    toString() { return "Expression: {"+ this.list.join(', ') +"}"; }
+        let tokens;
+        if (typeof(arg) == 'string') {
+            tokens=this.tokenize(arg);
+            if (this.ErrorList.length > 0) return; 
+        }
+        else tokens=arg;
+
+        tokens = this.collapsePrens(tokens);
+        console.log('tokens, after collapsePrens'+tokens);
+
+        tokens = this.addImpliedMul(tokens);
+        console.log('tokens, after addImpliedMul'+tokens);
+
+        let treeTopIdx = this.findTreeTopIdx(tokens);
+        console.log('treeTopIdx is '+treeTopIdx);
+
+        /* 
+                    TODO
+
+                    i think all that's left is to make a tree with the 
+                    new Expression(left tokens) action new Expression(right tokens) 
+                    
+                    The precedence is reversed. It should get the min, not the max.
+                    and the RIGHT/LEFT parsing should be correct.
+        
+        
+        */
+
+
+    }
+
+
+    toString() { return "Expression: { leftArg:"+this.leftArg+'; action='+this.action+
+        '; rightArg:'+this.rightArg +
+    
+    "}"; }
     isA() { return 'Expression'; }
 
 
