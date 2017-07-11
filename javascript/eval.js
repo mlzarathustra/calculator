@@ -95,9 +95,9 @@ class Expression {
 
     // returns a number
     getValue() {
-        if (action == null) return rightArg.getValue();
-        if (leftArg == null) return action(rightArg);
-        return action(leftArg,rightArg);
+        if (this.action == null) return this.rightArg.getValue();
+        if (this.leftArg == null) return this.action.act(this.rightArg.getValue());
+        return this.action.act(this.leftArg.getValue(), this.rightArg.getValue());
     }
 
     collapsePrens(tokens) {
@@ -211,6 +211,7 @@ class Expression {
     }
 
 
+
     findTreeTopIdx(tokens) {
         let minPreced = this.getSymbolWithMinPrecedence(tokens);
         console.log('min precedence is '+minPreced);
@@ -233,9 +234,6 @@ class Expression {
                 }
             }
         }
-
-
-
         // not reached
     }
 
@@ -243,9 +241,11 @@ class Expression {
         return: If this is one of the basic cases, assign our members as 
         shown below. The three basic cases: 
 
-        Value               rightArg
-        Verb Value          action rightArg
-        Value Verb Value    leftArg action rightArg
+                Value               rightArg
+                Verb Value          action rightArg
+                Value Verb Value    leftArg action rightArg
+
+        TODO - report more errors
     */
     isBasicCase(tokens) {
         switch (tokens.length) {
@@ -254,7 +254,8 @@ class Expression {
                     this.rightArg=tokens[0]; 
                     return true;
                 }
-                break;
+                else ErrorList.push('no argument found');
+                break; 
 
             case 2: 
                 if (tokens[0].isA()=='Verb' && isValue(tokens[1])) {
@@ -275,11 +276,6 @@ class Expression {
 
         }
         return false;
-
-
-
-
-
     }
 
 
@@ -291,7 +287,7 @@ class Expression {
         this.rightArg=null;
         this.action=null;
 
-        let tokens;
+        let tokens;         // overload c'tor: string or array
         if (typeof(arg) == 'string') {
             tokens=this.tokenize(arg);
             if (this.ErrorList.length > 0) return; 
@@ -312,27 +308,15 @@ class Expression {
 
         if (this.isBasicCase(tokens)) return;
 
-
-
+        //
+        //  not a basic case: form tree
 
         let treeTopIdx = this.findTreeTopIdx(tokens);
         console.log('treeTopIdx is '+treeTopIdx);
 
-
-
-
-        /* 
-                    TODO
-
-                    i think all that's left is to make a tree with the 
-                    new Expression(left tokens) action new Expression(right tokens) 
-                    
-                    the RIGHT/LEFT parsing should be correct.
-        
-        
-        */
-
-
+        if (treeTopIdx > 0) this.leftArg = new Expression(tokens.slice(0,treeTopIdx));
+        this.action = tokens[treeTopIdx];
+        this.rightArg = new Expression( tokens.slice(treeTopIdx+1) );
     }
 
 
@@ -450,6 +434,8 @@ function showTokens(id) {
         console.log('ERROR(S)');
         expr.ErrorList.forEach( function(msg) { console.log(msg); });
     }
+
+    document.getElementById('result').innerHTML = ''+expr.getValue();
 }
 
 
