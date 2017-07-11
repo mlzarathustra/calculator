@@ -175,81 +175,49 @@ class Expression {
         return rs;
     }
 
-    // immediately to the left of a value, the - has high precedence: -1 + 2 = 1
-    // same with +, but it is a no-op.
-    //
-    // collapseNegative(tokens) {
-    //     for (let idx=1; idx<tokens.length - 1; ++idx) {
-    //         if (tokens[idx].isA()=='Verb' && isValue(tokens[idx+1]) &&
-    //             tokens[idx-1].isA()=='Verb' &&
-    //             tokens[idx].string.match(/[+-]/) ) {
-
-    //             switch(tokens[idx].string) {
-    //                 case '+': console.log('unary plus'); 
-    //                     //  no-op (the + gets removed below)
-    //                     break;
-
-    //                 case '-': console.log('unary minus'); 
-    //                     tokens[idx+1] = new Expression( [tokens[idx],tokens[idx+1]] )
-    //                     break;
-    //             }
-    //             tokens.splice(idx,1);
-                
-    //         }
-    //     }
-
-    //     return tokens;
-    // }
-
-    //  allowing any operation to be monadic quickly becomes convoluted
-    //  as you may have to parse in both directions at once.
-    //  but it would be a nice feature. 
-    
-    //  (it's easier in APL because there is no precedence)
-    //
-    // TODO - the amount to grab
-    // grabMonadic(tokens, vIdx) {
-    //     let preced = tokens[vIdx].precedence;
-    //     while (vIdx < tokens.length-1) { 
-    //         if (tokens[vIdx].isA()=='Verb' && tokens[vIdx]) )
-
-
-    //         ++vIdx;
-    //     }
-    //     return vIdx;
-    // }
-    //     //   is the token to the left a verb? if so, we are monadic 
-
-    //     //   3 - 2  
-
-    //     // expression { 3 * expression { / expression { - 2 }}
-    //
-
 
     // for each verb with no left argument,
     // replace from it up to the next noun with expression
-    // TODO - implement precedence
-
-
+    // e.g. sin x + 3
+    //
+    // TODO - distinguish between -2^3 and -x^3
+    //  currently you'l get (-x)^3 which is surprising.
+    //
     collapseUnaryChains(tokens) {
         let rs=[];
-        for (let first=0; first<tokens.length; first++) {
-            if (tokens[first].isA() == 'Verb') {
-                let last=first;
-                while (tokens.length>last+1 && tokens[last+1].isA()=='Verb') ++last;
-                for (let idx=last; idx>=first; --idx) {
-                     let grabRight=grabMonadic(tokens, last); 
- 
-                }                
+        for (let idx=0; idx<tokens.length; ++idx) {
+            if (tokens[idx].isA()=='Verb' && (idx==0 || tokens[idx-1].isA()=='Verb')) {
+                let nextNoun=idx+1;
+                while (nextNoun < tokens.length && !isValue(tokens[nextNoun])) ++nextNoun;
+                if (nextNoun == idx) { // we're at the end
+                    ErrorList.push('Verb missing right argument: '+tokens[idx].string);
+                    return;
+                }
+                else if (nextNoun-idx == 1) { // it's next
+                    rs.push( new Expression(tokens.slice(idx, nextNoun+1)) );    
+                }
+                else {
+                    rs.push( new Expression( [].concat(
+                        tokens[idx],
+                        new Expression( tokens.slice(idx+1, nextNoun+1))
+                    )));
+                }
+                idx=nextNoun+1;
             }
+            else rs.push(tokens[idx]);
         }
-        return tokens;
+
+        return rs;
     }
 
 
     findTreeTopIdx(tokens) {
         let minPreced = this.getSymbolWithMinPrecedence(tokens);
         console.log('min precedence is '+minPreced);
+        if (minPreced == null) {
+            ErrorList.push('No verb found in phrase');
+            return;
+        }
 
         if (minPreced.parseMode == ParseAs.RIGHT) {
             for (let idx=tokens.length-1; idx>=0; --idx) {
@@ -336,8 +304,11 @@ class Expression {
         tokens = this.addImpliedMul(tokens);
         console.log('tokens, after addImpliedMul: '+tokens);
 
+        // need to check here or collapseUnaryChains will recurse infinitely
+        if (this.isBasicCase(tokens)) return;
+
         tokens = this.collapseUnaryChains(tokens);
-        console.log('tokens after collapseNegative: '+tokens);
+        console.log('tokens after collapseUnaryChains: '+tokens);
 
         if (this.isBasicCase(tokens)) return;
 
