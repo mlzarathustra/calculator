@@ -56,7 +56,7 @@ class Verb {
     Value is either an Expression or a Noun, as determined by the 
     isValue() fuction;
 
-    look at eval() to see how they are used.
+    look at Expression.isValue() to see how they are used.
 
 */
 
@@ -143,12 +143,22 @@ class Expression {
         }
         return rs;
     }
-
+/*
     getSymbolWithMaxPrecedence(tokens) {
         let rs=null;
         for (let token of tokens) {
             if (token.isA() == 'Verb') {
                 if (rs == null || token.precedence > rs.precedence) rs=token;
+            }
+        }
+        return rs;
+    }
+*/    
+    getSymbolWithMinPrecedence(tokens) {
+        let rs=null;
+        for (let token of tokens) {
+            if (token.isA() == 'Verb') {
+                if (rs == null || token.precedence < rs.precedence) rs=token;
             }
         }
         return rs;
@@ -165,20 +175,84 @@ class Expression {
         return rs;
     }
 
-    findTreeTopIdx(tokens) {
-        let maxPreced = this.getSymbolWithMaxPrecedence(tokens);
-        console.log('max precedence is '+maxPreced);
+    // immediately to the left of a value, the - has high precedence: -1 + 2 = 1
+    // same with +, but it is a no-op.
+    //
+    collapseNegative(tokens) {
+        for (let idx=1; idx<tokens.length - 1; ++idx) {
+            if (tokens[idx].isA()=='Verb' && isValue(tokens[idx+1]) &&
+                tokens[idx-1].isA()=='Verb' &&
+                tokens[idx].string.match(/[+-]/) ) {
 
-        if (maxPreced.parseMode == ParseAs.RIGHT) {
+                switch(tokens[idx].string) {
+                    case '+': console.log('unary plus'); 
+                        //  no-op (the + gets removed below)
+                        break;
+
+                    case '-': console.log('unary minus'); 
+                        tokens[idx+1] = new Expression( [tokens[idx],tokens[idx+1]] )
+                        break;
+                }
+                tokens.splice(idx,1);
+                
+            }
+        }
+
+        return tokens;
+    }
+
+    //  allowing any operation to be monadic quickly becomes convoluted
+    //  as you may have to parse in both directions at once.
+    //  but it would be a nice feature. 
+    
+    //  (it's easier in APL because there is no precedence)
+    //
+    // TODO - the amount to grab
+    // grabMonadic(tokens, vIdx) {
+    //     let preced = tokens[vIdx].precedence;
+    //     while (vIdx < tokens.length-1) { 
+    //         if (tokens[vIdx].isA()=='Verb' && tokens[vIdx]) )
+
+
+    //         ++vIdx;
+    //     }
+    //     return vIdx;
+    // }
+    //     //   is the token to the left a verb? if so, we are monadic 
+
+    //     //   3 - 2  
+
+    //     // expression { 3 * expression { / expression { - 2 }}
+    // collapseMonadic(tokens) {
+    //     let rs=[];
+    //     for (let first=0; first<tokens.length; first++) {
+    //         if (tokens[first].isA() == 'Verb') {
+    //             let last=first;
+    //             while (tokens.length>last+1 && tokens[last+1].isA()=='Verb') ++last;
+    //             for (let idx=last; idx>=first; --idx) {
+    //                  let grabRight=grabMonadic(tokens, last); 
+ 
+    //                                  ......
+    //         }
+    //     }
+    //     return tokens;
+    // }
+
+
+    findTreeTopIdx(tokens) {
+        let minPreced = this.getSymbolWithMinPrecedence(tokens);
+        console.log('min precedence is '+minPreced);
+
+        if (minPreced.parseMode == ParseAs.RIGHT) {
             for (let idx=tokens.length-1; idx>=0; --idx) {
-                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == maxPreced.precedence) {
+                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == minPreced.precedence) {
                     return idx;
                 }
             }
         }
         else {
             for (let idx=0; idx<tokens.length; ++idx) {
-                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == maxPreced.precedence) {
+                if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == minPreced.precedence) {
                     return idx;
                 }
             }
@@ -187,6 +261,49 @@ class Expression {
 
 
         // not reached
+    }
+
+    /*
+        return: If this is one of the basic cases, assign our members as 
+        shown below. The three basic cases: 
+
+        Value               rightArg
+        Verb Value          action rightArg
+        Value Verb Value    leftArg action rightArg
+    */
+    isBasicCase(tokens) {
+        switch (tokens.length) {
+            case 1: 
+                if (isValue(tokens[0])) {
+                    this.rightArg=tokens[0]; 
+                    return true;
+                }
+                break;
+
+            case 2: 
+                if (tokens[0].isA()=='Verb' && isValue(tokens[1])) {
+                    this.action=tokens[0];
+                    this.rightArg=tokens[1];
+                    return true;
+                }
+                break;
+
+            case 3: 
+                if (isValue(tokens[0]) && tokens[1].isA()=='Verb' && isValue(tokens[2])) {
+                    this.leftArg=tokens[0];
+                    this.action=tokens[1];
+                    this.rightArg=tokens[2];
+                    return true;
+                }
+                break;
+
+        }
+        return false;
+
+
+
+
+
     }
 
 
@@ -206,13 +323,24 @@ class Expression {
         else tokens=arg;
 
         tokens = this.collapsePrens(tokens);
-        console.log('tokens, after collapsePrens'+tokens);
+        console.log('tokens, after collapsePrens: '+tokens);
 
         tokens = this.addImpliedMul(tokens);
-        console.log('tokens, after addImpliedMul'+tokens);
+        console.log('tokens, after addImpliedMul: '+tokens);
+
+        tokens = this.collapseNegative(tokens);
+        console.log('tokens after collapseNegative: '+tokens);
+
+        if (this.isBasicCase(tokens)) return;
+
+
+
 
         let treeTopIdx = this.findTreeTopIdx(tokens);
         console.log('treeTopIdx is '+treeTopIdx);
+
+
+
 
         /* 
                     TODO
@@ -220,8 +348,7 @@ class Expression {
                     i think all that's left is to make a tree with the 
                     new Expression(left tokens) action new Expression(right tokens) 
                     
-                    The precedence is reversed. It should get the min, not the max.
-                    and the RIGHT/LEFT parsing should be correct.
+                    the RIGHT/LEFT parsing should be correct.
         
         
         */
@@ -230,9 +357,10 @@ class Expression {
     }
 
 
-    toString() { return "Expression: { leftArg:"+this.leftArg+'; action='+this.action+
-        '; rightArg:'+this.rightArg +
-    
+    toString() { return "Expression: { "+
+        ( this.leftArg == null ? '' : this.leftArg+' ' )
+        +( this.action == null ? '' : (this.action.string+' ') ) +
+        this.rightArg +
     "}"; }
     isA() { return 'Expression'; }
 
