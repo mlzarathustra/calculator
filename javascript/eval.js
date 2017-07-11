@@ -178,28 +178,28 @@ class Expression {
     // immediately to the left of a value, the - has high precedence: -1 + 2 = 1
     // same with +, but it is a no-op.
     //
-    collapseNegative(tokens) {
-        for (let idx=1; idx<tokens.length - 1; ++idx) {
-            if (tokens[idx].isA()=='Verb' && isValue(tokens[idx+1]) &&
-                tokens[idx-1].isA()=='Verb' &&
-                tokens[idx].string.match(/[+-]/) ) {
+    // collapseNegative(tokens) {
+    //     for (let idx=1; idx<tokens.length - 1; ++idx) {
+    //         if (tokens[idx].isA()=='Verb' && isValue(tokens[idx+1]) &&
+    //             tokens[idx-1].isA()=='Verb' &&
+    //             tokens[idx].string.match(/[+-]/) ) {
 
-                switch(tokens[idx].string) {
-                    case '+': console.log('unary plus'); 
-                        //  no-op (the + gets removed below)
-                        break;
+    //             switch(tokens[idx].string) {
+    //                 case '+': console.log('unary plus'); 
+    //                     //  no-op (the + gets removed below)
+    //                     break;
 
-                    case '-': console.log('unary minus'); 
-                        tokens[idx+1] = new Expression( [tokens[idx],tokens[idx+1]] )
-                        break;
-                }
-                tokens.splice(idx,1);
+    //                 case '-': console.log('unary minus'); 
+    //                     tokens[idx+1] = new Expression( [tokens[idx],tokens[idx+1]] )
+    //                     break;
+    //             }
+    //             tokens.splice(idx,1);
                 
-            }
-        }
+    //         }
+    //     }
 
-        return tokens;
-    }
+    //     return tokens;
+    // }
 
     //  allowing any operation to be monadic quickly becomes convoluted
     //  as you may have to parse in both directions at once.
@@ -223,20 +223,28 @@ class Expression {
     //     //   3 - 2  
 
     //     // expression { 3 * expression { / expression { - 2 }}
-    // collapseMonadic(tokens) {
-    //     let rs=[];
-    //     for (let first=0; first<tokens.length; first++) {
-    //         if (tokens[first].isA() == 'Verb') {
-    //             let last=first;
-    //             while (tokens.length>last+1 && tokens[last+1].isA()=='Verb') ++last;
-    //             for (let idx=last; idx>=first; --idx) {
-    //                  let grabRight=grabMonadic(tokens, last); 
+    //
+
+
+    // for each verb with no left argument,
+    // replace from it up to the next noun with expression
+    // TODO - implement precedence
+
+
+    collapseUnaryChains(tokens) {
+        let rs=[];
+        for (let first=0; first<tokens.length; first++) {
+            if (tokens[first].isA() == 'Verb') {
+                let last=first;
+                while (tokens.length>last+1 && tokens[last+1].isA()=='Verb') ++last;
+                for (let idx=last; idx>=first; --idx) {
+                     let grabRight=grabMonadic(tokens, last); 
  
-    //                                  ......
-    //         }
-    //     }
-    //     return tokens;
-    // }
+                }                
+            }
+        }
+        return tokens;
+    }
 
 
     findTreeTopIdx(tokens) {
@@ -328,7 +336,7 @@ class Expression {
         tokens = this.addImpliedMul(tokens);
         console.log('tokens, after addImpliedMul: '+tokens);
 
-        tokens = this.collapseNegative(tokens);
+        tokens = this.collapseUnaryChains(tokens);
         console.log('tokens after collapseNegative: '+tokens);
 
         if (this.isBasicCase(tokens)) return;
