@@ -423,7 +423,7 @@ initSymbols();
 
 
 
-function showTokens(id) {
+function calcResult(id) {
     let el=document.getElementById(id);
     let s=el.value;
     console.log('s is '+s);
@@ -436,6 +436,14 @@ function showTokens(id) {
     }
 
     document.getElementById('result').innerHTML = ''+expr.getValue();
+}
+
+function traceInitialization() {
+    console.log('verbs: '+_verbs);
+    console.log('Symbols: '+Symbols);
+    Object.keys(Symbols).forEach(
+        function(key) { console.log(key+': '+Symbols[key]); } 
+    );    
 }
 
 
