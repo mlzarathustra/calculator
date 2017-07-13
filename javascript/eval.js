@@ -9,11 +9,26 @@ function isValue(obj) {
 }
 
 
+// either a number or a reference into a Noun in Symbols.
+// we resolve late to facilitate graphing.
+//
 class Noun {
-    constructor(v) { this.value = parseFloat(v); }
-    toString() { return "Noun: { value="+this.value+" } "; }
+    constructor(v) { 
+        if ( typeof(v)=='string' && v.match(/^[a-zA-Z_]/) ) {
+            this.string = v;
+            this.isPointer=true;
+        }
+        else {
+            this.value = parseFloat(v); 
+            this.isPointer=false;
+        }
+    }
+    toString() { return "Noun: { value="+this.getValue()+" } "; }
     isA() { return 'Noun'; }
-    getValue() { return this.value; }
+    getValue() { 
+        if (this.isPointer) return Symbols[string].value;
+        else return this.value; 
+    }
 }
 
 var ParseAs ={
@@ -71,24 +86,30 @@ class Expression {
             if (pm != null) {
                 rs.push(new Pren(pm[1]));
                 s=pm[2];
+                continue;
             }
-            else {
-                let nm=/^([0-9\.]+)(.*)/.exec(s);
-                if (nm != null) {
-                    rs.push(new Noun(nm[1]));
-                    s=nm[2];
-                }
-                else {
-                    let m=/^([A-Za-z]+|.)(.*)/.exec(s);
-                    let sym=m[1].trim();
-                    if (sym.length > 0) {
-                        let v=Symbols[sym];
-                        if (v == undefined) this.ErrorList.push('Undefined: '+m[1]);
-                        rs.push(v);
-                    }
-                    s=m[2];
-                }
+            let nm=/^(-[0-9\.]+)(.*)/.exec(s);  // prefix - to a number?
+            if (nm != null && (rs.length==0 || rs[rs.length-1].isA() == 'Verb')) {
+                rs.push(new Noun(nm[1]));
+                s=nm[2];
+                continue;
             }
+
+            nm=/^([0-9\.]+)(.*)/.exec(s);
+            if (nm != null) {
+                rs.push(new Noun(nm[1]));
+                s=nm[2];
+                continue;
+            }
+
+            let m=/^([A-Za-z]+|.)(.*)/.exec(s);
+            let sym=m[1].trim();
+            if (sym.length > 0) {
+                let v=Symbols[sym];
+                if (v == undefined) this.ErrorList.push('Undefined: '+m[1]);
+                rs.push(v);
+            }
+            s=m[2];
         }
         return rs;
     }
@@ -180,8 +201,8 @@ class Expression {
     // replace from it up to the next noun with expression
     // e.g. sin x + 3
     //
-    // TODO - distinguish between -2^3 and -x^3
-    //  currently you'l get (-x)^3 which is surprising.
+    // TODO - grab to the right according to the precedence of the last verb
+    //        then regress through the chain of verbs doing the same.
     //
     collapseUnaryChains(tokens) {
         let rs=[];
@@ -202,7 +223,7 @@ class Expression {
                         new Expression( tokens.slice(idx+1, nextNoun+1))
                     )));
                 }
-                idx=nextNoun+1;
+                idx=nextNoun;
             }
             else rs.push(tokens[idx]);
         }
@@ -216,7 +237,7 @@ class Expression {
         let minPreced = this.getSymbolWithMinPrecedence(tokens);
         console.log('min precedence is '+minPreced);
         if (minPreced == null) {
-            ErrorList.push('No verb found in phrase');
+            this.ErrorList.push('No verb found in phrase');
             return;
         }
 
@@ -405,7 +426,7 @@ let _verbs = // outer dimension is precedence
 
 var Symbols = {
         pi: new Noun( Math.PI ),
-        e: new Noun(Math.E)
+        e:  new Noun( Math.E )
 };
 
 function initSymbols() {

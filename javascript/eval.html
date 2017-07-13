@@ -3,13 +3,16 @@
     <title>eval</title>
     <script src='eval.js'></script>
     <style>
+        #formula { margin: 15px; }
         #result { margin: 15px; padding: 4px; border: 1px solid #aaa; }
     </style>
 </head>
 <body>
 eval
 <br/>
-<input type='text' id='form1' onchange="calcResult('form1')"/>
+<div id='formula'>
+    <input type='text' id='form1' onchange="calcResult('form1')"/>
+</div>    
 
 <div id='result'>&nbsp;
 </div>    
