@@ -271,7 +271,7 @@ class Expression {
             return;
         }
 
-        // we're picking the one to execute LAST
+        // we're picking the verb to execute LAST
         //
         if (minPreced.parseMode == ParseAs.LEFT) {
             for (let idx=tokens.length-1; idx>=0; --idx) {
@@ -358,10 +358,6 @@ class Expression {
 
         tokens = this.collapseUnaryChains(tokens);
         console.log('tokens after collapseUnaryChains: '+tokens);
-
-        // //  can result in sequential nouns
-        // tokens = this.addImpliedMul(tokens);
-        // console.log('tokens, after addImpliedMul: '+tokens);
 
         if (this.isBasicCase(tokens)) return;
 

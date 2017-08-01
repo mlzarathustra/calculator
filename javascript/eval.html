@@ -4,17 +4,20 @@
     <script src='eval.js'></script>
     <style>
         #formula { margin: 15px; }
-        #result { margin: 15px; padding: 4px; border: 1px solid #aaa; }
+        #result { margin: 0 15px; padding: 4px; border: 1px solid #aaa; }
         #errors { margin: 15px; padding: 4px; color: red; }
+        .label { margin: 0 15px;}
     </style>
 </head>
 <body>
 eval
 <br/>
 <div id='formula'>
-    <input type='text' id='form1' onchange="calcResult('form1')"/>
+    expression:<br/>
+    <input type='text' id='form1' size='80' onchange="calcResult('form1')"/>
 </div>    
 
+<div class='label'>result:</div>
 <div id='result'>&nbsp; </div>    
 <div id='errors'>&nbsp; </div>
 
@@ -26,7 +29,17 @@ console.log('eval.js debug');
 document.getElementById('form1').focus();
 
 </script>
-
+<br/>
+<br/>
+<br/>
+<p>
+    Symbols: +-*/^ sqrt sin cos tan cot e pi
+</p>
+<p>
+    Unary * is Signum. Unary / is inverse. Unary ^ is exp(x)<br/>
+    Result is rounded to 14 places (but intermediate values are not)
+</p>
+<a href='test.html' target='_blank'>sample expressions</a>
 
 </body>
 </html>
