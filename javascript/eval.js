@@ -188,7 +188,11 @@ class Expression {
     addImpliedMul(tokens) {
         let rs=[];
         for (let t of tokens) {
-            if (isValue(t) && rs.length>0 && isValue(rs[rs.length-1])) {
+            if ( (rs.length>0 && isValue(rs[rs.length-1])) && (
+                    isValue(t) ||
+                    (t.isA()=='Verb' && t.parseMode==ParseAs.FUNCTION) 
+                )
+            ) {
                 rs.push(Symbols['*']);
             }
             rs.push(t);
@@ -196,13 +200,32 @@ class Expression {
         return rs;
     }
 
+    //  from idx (a verb) grab to the right until we find a verb with 
+    //  equal or lower precedence (or the end)
+    //  return: the index of what we found (which should work for slice())
+    //  e.g. - x ^ 3
+    //
+    grabRight(tokens, idx) {
+        if (tokens[idx].isA() != 'Verb') {
+            ErrrorList.push('Verb expected');
+            return;
+        }
+
+        let prec=tokens[idx].precedence;
+        let nextVerb=idx+1;
+
+        while (nextVerb < tokens.length) {
+            if (tokens[nextVerb].isA()=='Verb' && tokens[nextVerb].precedence <= prec) return nextVerb;
+            ++nextVerb;
+        }
+        return tokens.length;
+    }
+
 
     // for each verb with no left argument,
     // replace from it up to the next noun with expression
     // e.g. sin x + 3
     //
-    // TODO - grab to the right according to the precedence of the last verb
-    //        then regress through the chain of verbs doing the same.
     //
     collapseUnaryChains(tokens) {
         let rs=[];
@@ -214,16 +237,19 @@ class Expression {
                     ErrorList.push('Verb missing right argument: '+tokens[idx].string);
                     return;
                 }
-                else if (nextNoun-idx == 1) { // it's next
-                    rs.push( new Expression(tokens.slice(idx, nextNoun+1)) );    
-                }
-                else {
-                    rs.push( new Expression( [].concat(
-                        tokens[idx],
-                        new Expression( tokens.slice(idx+1, nextNoun+1))
-                    )));
-                }
-                idx=nextNoun;
+                // to be thorough, step back through the chain, 
+                // grabbing right each time to form an expression
+                // however, for the common case (-x^2) it's enough to grab just for
+                // the last Verb. Between - and /,* the order doesn't matter
+
+                let nextVerb=this.grabRight(tokens,nextNoun-1);
+                rs.push( new Expression( [].concat(
+                    tokens[idx], 
+                    new Expression( tokens.slice(idx+1, nextVerb))
+                )));
+
+                idx=nextVerb;
+                if (idx<tokens.length) rs.push(tokens[idx]);
             }
             else rs.push(tokens[idx]);
         }
@@ -326,6 +352,10 @@ class Expression {
 
         tokens = this.collapseUnaryChains(tokens);
         console.log('tokens after collapseUnaryChains: '+tokens);
+
+        // //  can result in sequential nouns
+        // tokens = this.addImpliedMul(tokens);
+        // console.log('tokens, after addImpliedMul: '+tokens);
 
         if (this.isBasicCase(tokens)) return;
 
@@ -451,12 +481,18 @@ function calcResult(id) {
     let expr=new Expression(s);
     console.log(expr);
 
+    let errs=document.getElementById('errors');
     if (expr.ErrorList.length>0) {
         console.log('ERROR(S)');
         expr.ErrorList.forEach( function(msg) { console.log(msg); });
-    }
 
-    document.getElementById('result').innerHTML = ''+expr.getValue();
+        errs.innerHTML=expr.ErrorList.join('<br/>')
+        errs.style.display='block';
+    }
+    else {
+        errs.style.display='none';
+        document.getElementById('result').innerHTML = ''+expr.getValue();
+    }
 }
 
 function traceInitialization() {

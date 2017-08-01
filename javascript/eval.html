@@ -5,6 +5,7 @@
     <style>
         #formula { margin: 15px; }
         #result { margin: 15px; padding: 4px; border: 1px solid #aaa; }
+        #errors { margin: 15px; padding: 4px; color: red; }
     </style>
 </head>
 <body>
@@ -14,8 +15,8 @@ eval
     <input type='text' id='form1' onchange="calcResult('form1')"/>
 </div>    
 
-<div id='result'>&nbsp;
-</div>    
+<div id='result'>&nbsp; </div>    
+<div id='errors'>&nbsp; </div>
 
 
 <script>
