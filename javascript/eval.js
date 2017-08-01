@@ -114,10 +114,16 @@ class Expression {
         return rs;
     }
 
+    // crude rounding, e.g. so sin(pi) returns 0.
+    // "14" was arrived at by empirical observation.
+    // for display only. best not to use for intermediate values
+    //
+    fudge() { return 1 * this.getValue().toFixed(14); }
+
     // returns a number
     getValue() {
         if (this.action == null) return this.rightArg.getValue();
-        if (this.leftArg == null) return this.action.act(this.rightArg.getValue());
+        if (this.leftArg == null) return this.action.act(this.rightArg.getValue() );
         return this.action.act(this.leftArg.getValue(), this.rightArg.getValue());
     }
 
@@ -257,8 +263,6 @@ class Expression {
         return rs;
     }
 
-
-
     findTreeTopIdx(tokens) {
         let minPreced = this.getSymbolWithMinPrecedence(tokens);
         console.log('min precedence is '+minPreced);
@@ -267,7 +271,9 @@ class Expression {
             return;
         }
 
-        if (minPreced.parseMode == ParseAs.RIGHT) {
+        // we're picking the one to execute LAST
+        //
+        if (minPreced.parseMode == ParseAs.LEFT) {
             for (let idx=tokens.length-1; idx>=0; --idx) {
                 if (tokens[idx].isA()=='Verb' && tokens[idx].precedence == minPreced.precedence) {
                     return idx;
@@ -472,8 +478,6 @@ initSymbols();
 
 
 
-
-
 function calcResult(id) {
     let el=document.getElementById(id);
     let s=el.value;
@@ -491,7 +495,7 @@ function calcResult(id) {
     }
     else {
         errs.style.display='none';
-        document.getElementById('result').innerHTML = ''+expr.getValue();
+        document.getElementById('result').innerHTML = ''+expr.fudge();
     }
 }
 
