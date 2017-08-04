@@ -1,9 +1,16 @@
+//  grapher 
+//
+//  [ported from java]
+//  (c) 2017 miles zarathustra
+//
+let MOUSE_DEBUG=false;
 
 class Point {
     constructor(x,y) {
         this.x=x;
         this.y=y;
     }
+    toString() { return this.x+','+this.y; }
 }
 Util = {
     doubleToInteger: function(d) { return Math.round(d); }
@@ -15,13 +22,63 @@ class Graph {
         this.scale=10;
         this.gridIncrement=1;
         this.axisColor='black';
-        this.gridColor='lightGray';
+        this.gridColor='#ddd';
         this.resetOrigin();
+        this.dragListen();
     }
     getWidth() { return this.canvas.width; }
     getHeight() { return this.canvas.height; }
     resetOrigin() { this.origin=new Point(this.getWidth()/2, this.getHeight()/2); }
 
+    dragListen() {
+        this.canvas.onmousedown=this.onMouseDown;
+        this.canvas.onmousemove=this.onMouseMove;
+        this.canvas.onmouseup=this.onMouseUp;
+        // they can lift their finger from the mouse outside of the window, 
+        // but without this we'll think it's still down.
+        this.canvas.onmouseleave=this.onMouseLeave; 
+        this.canvas.graph=this;
+
+
+    }
+
+    //  inside these functions, 'this' is the canvas element.
+    //
+    onMouseDown(evt) { 
+        if (MOUSE_DEBUG) console.log('mouseDown: '+evt.screenX+','+evt.screenY); 
+        this.dragStart=new Point(evt.screenX, evt.screenY);
+        this.origStart=new Point(this.graph.origin.x, this.graph.origin.y);
+        this.isMouseDown=true;
+    }
+    onMouseUp(evt) { 
+        if (MOUSE_DEBUG) console.log('mouseUP: '+evt.screenX+','+evt.screenY); 
+        this.isMouseDown=false;
+    }
+    onMouseLeave(evt) { 
+        // like "up" but we don't move the origin.
+        if (MOUSE_DEBUG) console.log('mouseLeave: '+evt.screenX+','+evt.screenY); 
+        this.isMouseDown=false;
+    }
+
+    onMouseMove(evt) { 
+        if (this.isMouseDown) {
+            if (MOUSE_DEBUG) console.log('mouseMove: '+evt.screenX+','+evt.screenY); 
+            
+            this.graph.origin=new Point(
+                this.origStart.x + (evt.screenX - this.dragStart.x), 
+                this.origStart.y - (this.dragStart.y - evt.screenY));
+            if (MOUSE_DEBUG) console.log('this.origin is '+this.graph.origin);
+            this.graph.draw(); 
+
+        }
+    }
+    //
+    //
+
+    // these don't work the way you might think.
+    // onDragStart(evt) { console.log('dragStart: '+evt); }
+    // onDrag(evt) { console.log('drag: '+evt); }
+    // onDragEnd(evt) { console.log('dragEnd: '+evt); }
 
     /**  
      *  translations: 
@@ -66,6 +123,7 @@ class Graph {
     drawPhysLine(ctx, A, B) { 
         ctx.moveTo(A.x,A.y);
         ctx.lineTo(B.x,B.y);
+        //console.log('drawPhysLine('+A+' - '+B+')');
     }
 
 
@@ -109,10 +167,37 @@ class Graph {
             this.drawPhysLine(ctx,end0,end1);
         }
     }
+      drawAxes(ctx) {
+        let end0, end1;
+
+        //	draw x axis
+        end0=new Point(0,this.origin.y); 
+        end1=new Point(this.getWidth(),this.origin.y);
+        this.drawPhysLine(ctx,end0,end1);
+
+        //  draw y axis
+        end0=new Point(this.origin.x,0); 
+        end1=new Point(this.origin.x,this.getHeight());
+        this.drawPhysLine(ctx,end0,end1);
+    }
+
+    drawGrid(ctx) {
+        ctx.beginPath();
+        ctx.strokeStyle=this.gridColor;
+        this.drawHorzGrids(ctx);
+        this.drawVertGrids(ctx);
+        ctx.stroke();
+        ctx.closePath();
+
+        ctx.beginPath();
+        ctx.strokeStyle=this.axisColor;
+        this.drawAxes(ctx);
+        ctx.stroke();
+        ctx.closePath();
+    }
 
 
-    fillGrey() {
-        let ctx = this.canvas.getContext('2d');
+    clear(ctx) {
         ctx.fillStyle='white';//rgb(200,200,200)'; // of 255
         ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
     }
@@ -120,18 +205,14 @@ class Graph {
     draw() {
         if (!this.canvas.getContext) return;
 
-        this.fillGrey(); // todo - should clear instead
-
         let ctx=this.canvas.getContext('2d');
+        this.clear(ctx);
 
-        console.log('lineWidth is '+ctx.lineWidth);
-        ctx.beginPath();
+        ctx.lineWidth=1; 
+        //console.log('lineWidth is '+ctx.lineWidth);
 
-        this.drawHorzGrids(ctx);
-        this.drawVertGrids(ctx);
+        this.drawGrid(ctx);
 
-        ctx.stroke();
-        ctx.closePath();
 
     }
 }

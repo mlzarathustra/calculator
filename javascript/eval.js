@@ -1,7 +1,7 @@
 //  evaluator 
 //
-//  2017 port from java
-//  (c) miles zarathustra
+//  [ported from java]
+//  (c) 2017 miles zarathustra
 //
 
 function isValue(obj) {
