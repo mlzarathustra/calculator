@@ -1,0 +1,65 @@
+<html>
+<head>
+    <title>graph</title>
+    <script src='eval.js'></script>
+    <script src='graph.js'></script>
+    <style>
+        canvas { border: 1px solid #eee; margin: 0; }
+        body { padding: 0; }
+    </style>
+</head>
+<body>
+graph
+<br/>
+<div id="msg"> </div>
+<canvas id='graph' width='800' height='600'>
+    your browser does not support the canvas element.
+</canvas>
+
+<script>
+
+    var xShim=40, yShim=75; // px
+    var graph=new Graph(document.getElementById('graph'));
+
+    function getCanvas() { return document.getElementById('graph'); }
+    function getContext() { return getCanvas().getContext('2d'); }
+
+    function resizeCanvas() {
+        // to support older browsers.... which may not support "let?"
+        let width = window.innerWidth
+            || document.documentElement.clientWidth
+            || document.body.clientWidth;  
+
+        let height = window.innerHeight
+            || document.documentElement.clientHeight
+            || document.body.clientHeight;
+
+        let msg=document.getElementById('msg');
+        msg.innerText = 'window (inner) -  width: '+width+'; height: '+height;
+
+        let canvas = getCanvas();
+        canvas.width=width-xShim;
+        canvas.height=height-yShim;
+        graph.draw();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+
+    function mozRect(ctx) {
+        ctx.fillStyle = 'rgb(200, 0, 0)'; 
+        ctx.fillRect(10, 10, 50, 50);
+
+        ctx.fillStyle = 'rgba(0, 0, 200, 0.5)';
+        ctx.fillRect(30, 30, 50, 50);
+    }
+
+    resizeCanvas(); // initial
+
+    mozRect(getContext());
+
+</script>
+
+</body>
+</html>
+
