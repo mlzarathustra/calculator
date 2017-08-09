@@ -1,9 +1,12 @@
 //  grapher 
 //
 //  [ported from java]
-//  (c) 2017 miles zarathustra
+//  Copyright (c) 2017 miles zarathustra
 //
 let MOUSE_DEBUG=false;
+let DEFAULT_SCALE=10; // 10 pixels per unit graphed
+let DEFAULT_GRID_INCREMENT=1; // one grid line per unit
+
 
 class Point {
     constructor(x,y) {
@@ -19,8 +22,7 @@ Util = {
 class Graph {
     constructor(canvas) {
         this.canvas=canvas;
-        this.scale=10;
-        this.gridIncrement=1;
+        this.reset();
         this.axisColor='black';
         this.gridColor='#ddd';
         this.resetOrigin();
@@ -28,18 +30,25 @@ class Graph {
     }
     getWidth() { return this.canvas.width; }
     getHeight() { return this.canvas.height; }
+
+
+    reset() {
+        this.scale=DEFAULT_SCALE;
+        this.gridIncrement=DEFAULT_GRID_INCREMENT;
+        this.resetOrigin();
+    }
+
     resetOrigin() { this.origin=new Point(this.getWidth()/2, this.getHeight()/2); }
 
     dragListen() {
         this.canvas.onmousedown=this.onMouseDown;
         this.canvas.onmousemove=this.onMouseMove;
         this.canvas.onmouseup=this.onMouseUp;
+        this.canvas.onwheel=this.onWheel;
         // they can lift their finger from the mouse outside of the window, 
         // but without this we'll think it's still down.
         this.canvas.onmouseleave=this.onMouseLeave; 
         this.canvas.graph=this;
-
-
     }
 
     //  inside these functions, 'this' is the canvas element.
@@ -71,6 +80,16 @@ class Graph {
             this.graph.draw(); 
 
         }
+    }
+
+    onWheel(evt) {
+        if (MOUSE_DEBUG) console.log(evt);
+        if (evt.deltaY < 0) this.graph.scale += 1;
+        else {
+            if (this.graph.scale > 1) this.graph.scale -= 1;
+        }
+        if (MOUSE_DEBUG) console.log('scale is '+this.graph.scale);
+        this.graph.draw();
     }
     //
     //
@@ -167,7 +186,7 @@ class Graph {
             this.drawPhysLine(ctx,end0,end1);
         }
     }
-      drawAxes(ctx) {
+    drawAxes(ctx) {
         let end0, end1;
 
         //	draw x axis
