@@ -1,5 +1,5 @@
 <html>
-<!-- (c) 2017 miles zarathustra -->
+<!-- Copyright (c) 2017 miles zarathustra -->
 <head>
     <title>graph</title>
     <script src='eval.js'></script>
@@ -33,7 +33,7 @@ graph
             || document.body.clientHeight;
 
         let msg=document.getElementById('msg');
-        msg.innerText = 'window (inner) -  width: '+width+'; height: '+height;
+        msg.innerText = width+' x '+height+' px; drag to move; scroll wheel to zoom.';
 
         graph.canvas.width=width-xShim;
         graph.canvas.height=height-yShim;
