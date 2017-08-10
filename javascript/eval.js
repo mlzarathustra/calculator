@@ -4,6 +4,8 @@
 //  (c) 2017 miles zarathustra
 //
 
+var EVAL_DEBUG=false;
+
 function isValue(obj) {
     return (obj.isA()=='Noun' || obj.isA()=='Expression');
 }
@@ -265,7 +267,7 @@ class Expression {
 
     findTreeTopIdx(tokens) {
         let minPreced = this.getSymbolWithMinPrecedence(tokens);
-        console.log('min precedence is '+minPreced);
+        if (EVAL_DEBUG) console.log('min precedence is '+minPreced);
         if (minPreced == null) {
             this.ErrorList.push('No verb found in phrase');
             return;
@@ -348,16 +350,16 @@ class Expression {
         else tokens=arg;
 
         tokens = this.collapsePrens(tokens);
-        console.log('tokens, after collapsePrens: '+tokens);
+        if (EVAL_DEBUG) console.log('tokens, after collapsePrens: '+tokens);
 
         tokens = this.addImpliedMul(tokens);
-        console.log('tokens, after addImpliedMul: '+tokens);
+        if (EVAL_DEBUG) console.log('tokens, after addImpliedMul: '+tokens);
 
         // need to check here or collapseUnaryChains will recurse infinitely
         if (this.isBasicCase(tokens)) return;
 
         tokens = this.collapseUnaryChains(tokens);
-        console.log('tokens after collapseUnaryChains: '+tokens);
+        if (EVAL_DEBUG) console.log('tokens after collapseUnaryChains: '+tokens);
 
         if (this.isBasicCase(tokens)) return;
 
@@ -365,7 +367,7 @@ class Expression {
         //  not a basic case: form tree
 
         let treeTopIdx = this.findTreeTopIdx(tokens);
-        console.log('treeTopIdx is '+treeTopIdx);
+        if (EVAL_DEBUG) console.log('treeTopIdx is '+treeTopIdx);
 
         if (treeTopIdx > 0) this.leftArg = new Expression(tokens.slice(0,treeTopIdx));
         this.action = tokens[treeTopIdx];
@@ -477,14 +479,16 @@ initSymbols();
 function calcResult(id) {
     let el=document.getElementById(id);
     let s=el.value;
-    console.log('s is '+s);
+    if (EVAL_DEBUG) console.log('s is '+s);
     let expr=new Expression(s);
-    console.log(expr);
+    if (EVAL_DEBUG) console.log(expr);
 
     let errs=document.getElementById('errors');
     if (expr.ErrorList.length>0) {
-        console.log('ERROR(S)');
-        expr.ErrorList.forEach( function(msg) { console.log(msg); });
+        if (EVAL_DEBUG) {
+            console.log('ERROR(S)');
+            expr.ErrorList.forEach( function(msg) { console.log(msg); });
+        }
 
         errs.innerHTML=expr.ErrorList.join('<br/>')
         errs.style.display='block';
@@ -495,6 +499,8 @@ function calcResult(id) {
     }
 }
 
+//  unused
+//
 function traceInitialization() {
     console.log('verbs: '+_verbs);
     console.log('Symbols: '+Symbols);

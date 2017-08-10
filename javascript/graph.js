@@ -25,6 +25,7 @@ class Graph {
         this.reset();
         this.axisColor='black';
         this.gridColor='#ddd';
+        this.expressions=[];
         this.resetOrigin();
         this.dragListen();
     }
@@ -221,6 +222,21 @@ class Graph {
         ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
     }
 
+    drawExpressions() {
+        console.log('drawExpressions('+this.expressions+')');
+        Symbols.x=new Noun(0);
+        for (let ex of this.expressions) {
+
+            // todo - implement
+            for (let x=0; x<this.canvas.width; ++x) {
+                Symbols.x.value = x;
+                console.log(x+','+ex.getValue());
+            }
+        }
+
+
+    }
+
     draw() {
         if (!this.canvas.getContext) return;
 
@@ -231,6 +247,9 @@ class Graph {
         //console.log('lineWidth is '+ctx.lineWidth);
 
         this.drawGrid(ctx);
+
+        console.log('this.expressions:'+this.expressions);
+        if (this.expressions) this.drawExpressions();
 
 
     }

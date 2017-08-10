@@ -10,9 +10,11 @@
     </style>
 </head>
 <body>
-graph
-<br/>
 <div id="msg"> </div>
+<div id="formulas"> 
+    <input type=button id='reset' value='reset origin'/>
+    y=<input type="text" size="80" id="form1"/>
+</div>
 <canvas id='graph' width='800' height='600'>
     your browser does not support the canvas element.
 </canvas>
@@ -41,10 +43,32 @@ graph
         graph.draw();
     }
 
+    function plotFormula(f, idx) {
+        console.log('plotting '+f);
+        graph.expressions[idx]=new Expression(f);
+        graph.draw();
+    }
+
+    function onFormulaChange(evt) {
+
+        //  todo - loop through the list of them
+        //  it will be easier to call a different function for radians
+
+        //console.log('evt: '+evt);
+        plotFormula(document.getElementById('form1').value, 0);
+    }
+    function onResetClick(evt) {
+        //console.log('onResetClick');
+        graph.resetOrigin();
+        graph.draw();
+    }
+
+
     //  MAIN
     //
-    var xShim=40, yShim=75; // px
+    var xShim=40, yShim=85; // px
     var graph=new Graph(getCanvas());
+    
 
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas(); // initial
@@ -57,6 +81,10 @@ graph
     //     ctx.fillRect(30, 30, 50, 50);
     // }
     // mozRect(getContext());
+
+    document.getElementById('form1').addEventListener('change', onFormulaChange);
+    document.getElementById('reset').addEventListener('click', onResetClick)
+
 
 </script>
 
