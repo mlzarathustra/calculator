@@ -13,7 +13,7 @@
 <div id="msg"> </div>
 <div id="formulas"> 
     <input type=button id='reset' value='reset origin'/>
-    y=<input type="text" size="80" id="form1"/>
+    y=<input type="text" size="80" id="form1" spellcheck="false"/>
 </div>
 <canvas id='graph' width='800' height='600'>
     your browser does not support the canvas element.
@@ -35,7 +35,7 @@
             || document.body.clientHeight;
 
         let msg=document.getElementById('msg');
-        msg.innerText = width+' x '+height+' px; drag to move; scroll wheel to zoom.';
+        msg.innerText = 'drag to move; scroll wheel to zoom. canvas size: '+width+'x'+height+' px';
 
         graph.canvas.width=width-xShim;
         graph.canvas.height=height-yShim;
@@ -45,6 +45,10 @@
 
     function plotFormula(f, idx) {
         console.log('plotting '+f);
+
+        // needs to happen before constructing Expressions
+        Symbols.x = new Noun('x');
+
         graph.expressions[idx]=new Expression(f);
         graph.draw();
     }

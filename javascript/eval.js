@@ -28,7 +28,7 @@ class Noun {
     toString() { return "Noun: { value="+this.getValue()+" } "; }
     isA() { return 'Noun'; }
     getValue() { 
-        if (this.isPointer) return Symbols[string].value;
+        if (this.isPointer) return Symbols[this.string].value;
         else return this.value; 
     }
 }

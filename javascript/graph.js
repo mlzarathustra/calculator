@@ -4,6 +4,7 @@
 //  Copyright (c) 2017 miles zarathustra
 //
 let MOUSE_DEBUG=false;
+let GRAPH_DEBUG=false;
 let DEFAULT_SCALE=10; // 10 pixels per unit graphed
 let DEFAULT_GRID_INCREMENT=1; // one grid line per unit
 
@@ -25,6 +26,7 @@ class Graph {
         this.reset();
         this.axisColor='black';
         this.gridColor='#ddd';
+        this.lineColor='red'; // TODO - make selectable
         this.expressions=[];
         this.resetOrigin();
         this.dragListen();
@@ -85,9 +87,9 @@ class Graph {
 
     onWheel(evt) {
         if (MOUSE_DEBUG) console.log(evt);
-        if (evt.deltaY < 0) this.graph.scale += 1;
+        if (evt.deltaY < 0) this.graph.scale *= 1.1;
         else {
-            if (this.graph.scale > 1) this.graph.scale -= 1;
+            if (this.graph.scale > 1) this.graph.scale = Math.floor( this.graph.scale / 1.1);
         }
         if (MOUSE_DEBUG) console.log('scale is '+this.graph.scale);
         this.graph.draw();
@@ -222,17 +224,27 @@ class Graph {
         ctx.fillRect(0,0,this.canvas.width, this.canvas.height);
     }
 
-    drawExpressions() {
-        console.log('drawExpressions('+this.expressions+')');
+    drawExpressions(ctx) {
+        if (GRAPH_DEBUG) console.log('drawExpressions('+this.expressions+')');
         Symbols.x=new Noun(0);
+
+        ctx.beginPath();
+        ctx.strokeStyle=this.lineColor;
+
         for (let ex of this.expressions) {
 
             // todo - implement
             for (let x=0; x<this.canvas.width; ++x) {
-                Symbols.x.value = x;
-                console.log(x+','+ex.getValue());
+                let logX=this.phys2logX(x);
+                Symbols.x.value = logX;
+                let logY = ex.getValue()
+                let y=this.log2physY(logY);
+                //console.log(logX+','+logY+' ==> '+x+','+y);  // VERY chatty!
+                ctx.lineTo(x, y);
             }
         }
+        ctx.stroke();
+        ctx.closePath();
 
 
     }
@@ -248,8 +260,8 @@ class Graph {
 
         this.drawGrid(ctx);
 
-        console.log('this.expressions:'+this.expressions);
-        if (this.expressions) this.drawExpressions();
+        if (GRAPH_DEBUG) console.log('this.expressions:'+this.expressions);
+        if (this.expressions) this.drawExpressions(ctx);
 
 
     }
