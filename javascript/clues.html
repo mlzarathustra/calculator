@@ -1,0 +1,40 @@
+<html>
+<head><title>Graphing Calculator - Clues</title>
+        <script src='eval.js'></script>
+</head>
+<body>
+<h1>Graphing Calculator - Clues</h1>
+<p>
+Symbols: + - * / ^
+<p>
+The usual precedence. 
+<p>
+3x == 3 * x<br/>
+10 sin x == 10 * sin(x)<br/>
+sin(10x) == sin(10 * x) ... <i>however</i><br/>
+sin 10x == sin(10) * x<br/>
+
+<p>   
+Keywords to try: <br/>
+<script>
+    for (key in Symbols) {
+        if (key.match(/[a-zA-Z]/)) document.write(key+' ');
+    }
+</script>
+<p>
+Unary operators:
+<ul>
+    <li>/x == 1/x
+    <li>*x == sgn(x)
+    <li>^x == e^x
+</ul>
+
+<p>
+    BUGS
+    <ul>
+        <li>doesn't handle off-the-edge cases well (e.g. tan x, when zoomed out)
+    </ul>
+
+
+</body>
+</html>

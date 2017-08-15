@@ -136,7 +136,7 @@ class Expression {
 
             if (token.isA() == 'Pren') { 
                 if (token.isClose()) {
-                    this.ErrorList.push("Unexpected ) token="+idx);
+                    this.ErrorList.push("Unexpected )"); //  token="+idx);
                 }
                 else {
                     let nest=1;

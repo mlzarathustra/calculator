@@ -230,17 +230,37 @@ class Graph {
 
         ctx.beginPath();
         ctx.strokeStyle=this.lineColor;
+        let wasOut=0;// -1: below; 0=not; +1=above
 
         for (let ex of this.expressions) {
-
-            // todo - implement
             for (let x=0; x<this.canvas.width; ++x) {
                 let logX=this.phys2logX(x);
                 Symbols.x.value = logX;
-                let logY = ex.getValue()
+                let logY = ex.getValue();
                 let y=this.log2physY(logY);
-                //console.log(logX+','+logY+' ==> '+x+','+y);  // VERY chatty!
-                ctx.lineTo(x, y);
+                if (y<0) {
+                    if (!wasOut) ctx.lineTo(x,0);
+                    wasOut=-1;
+
+                }
+                else if (y>this.canvas.height) {
+                    if (!wasOut) ctx.lineTo(x,this.canvas.height);
+                    wasOut=1;
+                }
+                else {
+                    //console.log(logX+','+logY+' ==> '+x+','+y);  // VERY chatty!
+                    if (wasOut<0) {
+                        ctx.moveTo(x,0);
+                        ctx.lineTo(x,y);
+                    }
+                    else if (wasOut>0) {
+                        ctx.moveTo(x,this.canvas.height);
+                        ctx.lineTo(x,y);
+                    }
+                    else ctx.lineTo(x, y);
+                    
+                    wasOut=0;
+                }
             }
         }
         ctx.stroke();
